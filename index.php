@@ -13,52 +13,52 @@
   // you could glob() instead if you have dated directories 
   // e.g. 2019-02-02, 2019-02-03, 2019-02-04
   $cams = array(0=>"ipcam2substream",
-			    1=>"ipcam3substream",
+		1=>"ipcam3substream",
                 2=>"ipcam4substream");
 
-  $ext        = "mp4"; // extension
+  $ext = "mp4"; // extension
 
   // for javascript
   $js_videofeatures = "autoplay"; // "controls autoplay";
-  $js_cams     = array();
+  $js_cams = array();
   $players = "";
   $js_videos  = "";
   $videofiles = "";  
 	
   forEach($cams as $k=>$dir){
-		$js_cams[]     = "cams[$k] = \"$dir\"; \n";
+	$js_cams[] = "cams[$k] = \"$dir\"; \n";
   }
 
   foreach($cams as $key=>$dir){
-		$players .= "<div class='col-md-6'>
-					  <video id='video$key' $js_videofeatures></video> 
-			         </div>";
-	}
+	$players .= "<div class='col-md-6'>
+		  	<video id='video$key' $js_videofeatures></video> 
+		     </div>";
+ }
 
-	$idx        = 0;
-	$dirname    = $cams[0]; // using directory 1 only, others will follow this timestamp (incl. drift)
-	$files      = glob($dirname . "/*.$ext");
+ $idx        = 0;
+ $dirname    = $cams[0]; // using directory 1 only, others will follow this timestamp (incl. drift)
+ $files      = glob($dirname . "/*.$ext");
 
-    // sort DESC so next = next--
-	usort($files, create_function('$a,$b', 'return filemtime($b) - filemtime($a);'));
+ // sort DESC so next = next--
+ usort($files, create_function('$a,$b', 'return filemtime($b) - filemtime($a);'));
 
-    // sort ASC so next = next++
-	//usort($files, create_function('$a,$b', 'return filemtime($a) - filemtime($b);'));
+ // sort ASC so next = next++
+ //usort($files, create_function('$a,$b', 'return filemtime($a) - filemtime($b);'));
 
-	$max_files = sizeof($files);
+ $max_files = sizeof($files);
 
-	/* Checking
-	 * hh:mm:05, hh:mm:04, hh:mm:03, etc
-	 * */
-	$checktimes = array();
-	for($idx1 = 5; $idx1 <= 59; $idx1+=5){
-		$checktimes[] = $idx1;
-	}
+ /* Checking
+  * hh:mm:05, hh:mm:04, hh:mm:03, etc
+  * */
+ $checktimes = array();
+ for($idx1 = 5; $idx1 <= 59; $idx1+=5){
+     $checktimes[] = $idx1;
+ }
 	
-	/*
-	 * videos["timestamp"] = ["TS000","TS001","TS002"];
-	 * */
-	foreach ($files as $file) {
+ /*
+  * videos["timestamp"] = ["TS000","TS001","TS002"];
+  * */
+ foreach ($files as $file) {
 	   $file  = basename($file);
 	   $timestamp = str_replace("-$dirname.$ext","", $file);
 	   $idy   = $idx + 1;
@@ -78,58 +78,56 @@
 		    $bfound = false;
 		    
 		    if ($idz == 0){
-				//$vids[] = $path;
-			} else {
+			//$vids[] = $path;
+			} else {		
+			// when greater than index 0
+			// find the next existing file within the current timestamp				
+			$path_ = "$dir/$file";
 				
-				// when greater than index 0
-				// find the next existing file within the current timestamp				
-				$path_ = "$dir/$file";
-				
-				if (! file_exists($path_)){
-					//echo "Nope: $path_ ,";
+			if (! file_exists($path_)){
+			//echo "Nope: $path_ ,";
 					
-					$seconds = intval($seconds)+5;
+				$seconds = intval($seconds)+5;
 					
-					foreach ($checktimes as $t){
-						if ($seconds <= $t+5){
-							for($s = $seconds; $s <= $t+5; $s--){
-								$pad = strlen($s) == 1 ? "0" : "";
-								$file_t = "$dir/$minutes-$pad$s.$ext";
-								//echo "checking $file_t.. <BR>";
+				foreach ($checktimes as $t){
+					if ($seconds <= $t+5){
+						for($s = $seconds; $s <= $t+5; $s--){
+							$pad = strlen($s) == 1 ? "0" : "";
+							$file_t = "$dir/$minutes-$pad$s.$ext";
+							//echo "checking $file_t.. <BR>";
 								
-								if ( file_exists( $file_t ) ){
-									$bfound = true;
-									$vids[] = "\"$dir/$minutes-$pad$s.$ext\"";
-									//echo "~~ Closest: '$file_t' <BR>";
-									break;
-								}
+							if ( file_exists( $file_t ) ){
+								$bfound = true;
+								$vids[] = "\"$dir/$minutes-$pad$s.$ext\"";
+								//echo "~~ Closest: '$file_t' <BR>";
+								break;
+							}
 								
-								if ($s == 0) {
-									$bfound = true; //force outer loop to break
-									$vids[] = $path;
-									//echo "~~~~ Gave up: No file close to main timestamp found inside $dir. <BR>";
-									break;
-								}
+							if ($s == 0) {
+								$bfound = true; //force outer loop to break
+								$vids[] = $path;
+								//echo "~~~~ Gave up: No file close to main timestamp found inside $dir. <BR>";
+								break;
 							}
 						}
+					}
 						
-						if ($bfound){
-							//echo "~~~~ leaving outer loop <BR>";
-							break;
-						}
-					}			
-				}
+					if ($bfound){
+					//echo "~~~~ leaving outer loop <BR>";
+						break;
+					}
+				}			
+			}
 
-			} 
+		} 
 			
-			// default path if nothing found
-			if (!$bfound) {	$vids[] = $path; }
-			$idz++;
+		// default path if nothing found
+		if (!$bfound) {	$vids[] = $path; }
+		$idz++;
 	   }
 	   $vids = implode(",", $vids);
 	   
 	   $js_videos .= "videos[\"$timestamp\"] = [$vids]; \n";
-	   
 	   $idx++;
 	}
 ?>
@@ -193,9 +191,9 @@
    <?php echo $js_videos; ?>
    
    players[ 0 ].onended = function(){
-		console.log('video ended')
-		setvideoplaying( 0 );
-	}
+	console.log('video ended')
+	setvideoplaying( 0 );
+    }
 
    // handle nav: next or prev
    var setvideoplaying = function( prev_or_next ){
