@@ -5,7 +5,7 @@
   * play the videos from different directories with the same time stamp synchronously
   * Compensates for seconds drift (where timestamps will differ slighly by seconds over time)
   * 
-  * William Sengdara - May 14, 2019
+  * William Sengdara - May 12, 2019
   *
   */
 
@@ -19,9 +19,9 @@
   $ext        = "mp4"; // extension
 
   // for javascript
-  $js_videofeatures = "autoplay"; // "controls autoplay";
+  $js_videofeatures = "autoplay controls"; // "controls autoplay";
   $js_cams     = array();
-  $players = "";
+  $js_players = "";
   $js_videos  = "";
   $videofiles = "";  
 	
@@ -30,9 +30,9 @@
   }
 
   foreach($cams as $key=>$dir){
-		$players .= "<div class='col-md-6'>
-					  <video id='video$key' $js_videofeatures></video> 
-			         </div>";
+		$js_players .= "<div class='col-md-6'>
+					      <video id='video$key' $js_videofeatures></video> 
+			            </div>";
 	}
 
 	$idx        = 0;
@@ -68,7 +68,7 @@
 	   array_pop($minutes); // remove seconds
 	   $seconds = $seconds[ 4 ];
 	   $minutes = implode("-", $minutes);
-	   $videofiles .= "$idy. <a href='#' onclick=\"playfile('$timestamp', $idx); return false;\">$timestamp</a> <BR>";
+	   $videofiles .= "$idy. <a href='#' onclick=\"playfile('$timestamp', $idx); return false;\">$timestamp</a> <BR>\n";
 	   
 	   $vids = array();
 	   $idz = 0;
@@ -163,7 +163,7 @@
 		</small>
 		]
 &nbsp;
-     <b>Transport:</b>
+     <b>State:</b>
 		[
 		<small>
 			 <a href='#' onclick="setstate(2, 0); return false;" class='control'>Play</a> 
@@ -187,12 +187,12 @@
    </div> <!-- row -->
 	<p>&nbsp;</p>
 	<div class='row'>
-         <?php echo $players; ?>
+         <?php echo $js_players; ?>
      </div> <!-- row -->
     <div class='row'>
 	<p>&nbsp;</p>
 	<div class='col-md-12 border-me'>
-      Video File List (<?php echo $max_files; ?> files) - <small>Click a time stamp below to play videos within. The next video plays automatically after previous one ends. Click Prev/Next at top to navigate</small>
+      Video File List (<?php echo $max_files; ?> files) - <small>Click a time stamp below to play videos within. The next video plays automatically after previous one ends. Click Prev/Next at top to navigate. Pause videos in order to allow catch-up</small>
       </div>
 	  <div class='col-md-6' id='files'>
 		<?php echo $videofiles; ?>
@@ -213,13 +213,16 @@
    var videos = {};
    <?php echo $js_videos; ?>
    
-   players[ 0 ].onended = function(){
-		console.log('video ended')
-		setvideoplaying( 0 );
+   players[ players.length-1 ].onended = function(){
+		console.log('last video ctl ended')
+		// wait for last video to finish playing
+		// but what if it's shorter than the others?
+		setvideoplaying( 0 )
 	}
 
-   players[ 0 ].oncanplay = function(){
-		console.log('video can play')
+   players[ players.length-1 ].oncanplay = function(){
+		console.log('last video ctl can play')
+		// TODO: play all now
 	}
 
    // handle play state
@@ -227,7 +230,7 @@
 		switch (play_pause_stop){
              case 0: // stop
 				  players.forEach((el,idx)=>{
-					el.stop()
+					//el.stop()
 				  })
 					break;
 
@@ -286,25 +289,24 @@
 	  // update global var for next video
       g_playbackRate = speed
 
-	  var speeds = document.querySelectorAll('a.speed');
+	  var speeds = document.querySelectorAll('a.speed')
 	  speeds.forEach((el,idx)=>{
-          el.style.color = idx == aIdx ? 'red' : 'initial';
+          el.style.color = idx == aIdx ? 'red' : 'initial'
       })
 
 	  // all vids are set the same speed, we can query element 0
- 	  console.log( 'playbackRate:',players[0].playbackRate );
+ 	  console.log( 'playbackRate:',players[0].playbackRate )
    }
 
    // handle file being played: pass the index of the anchor in the div#files > a list
    var playfile = function( timestamp, aIdx ){
 		anchors[ g_currIdx ].style.color = 'initial' // reset current active anchor
-		anchors[ aIdx ].style.color      = 'red' // set new active anchor
+		anchors[ aIdx ].style.color      = 'red'     // set new active anchor color to red
 		nowplaying.innerText             = timestamp
 
-		console.log(timestamp, aIdx);
+		console.log(timestamp, aIdx)
 		
 		players.forEach( (el,idx)=>{
-			// what is the directory for this video?
 			let path = videos[timestamp][idx]
 
 			try {
